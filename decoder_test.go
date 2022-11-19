@@ -104,7 +104,7 @@ func TestDecode(t *testing.T) {
 				return
 			}
 
-			if tc.expectedErr == unknown {
+			if errors.Is(unknown, tc.expectedErr) {
 				assert.Error(err)
 				return
 			}
@@ -220,7 +220,7 @@ func TestEndToEnd(t *testing.T) {
 				return
 			}
 
-			if tc.expectedErr == unknown {
+			if errors.Is(unknown, tc.expectedErr) {
 				assert.Error(err)
 				return
 			}
