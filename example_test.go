@@ -13,16 +13,14 @@ import (
 )
 
 func Example() {
-	_ = os.Setenv("EXAMexample_version", "1")
-	_ = os.Setenv("EXAMexample_colors_0", "red")
-	_ = os.Setenv("EXAMexample_colors_1", "green")
-	_ = os.Setenv("EXAMexample_colors_2", "blue")
-	g, err := goschtalt.New(env.EnvVarConfig("OrderFilename", "EXAM", "_")...)
-	if err != nil {
-		panic(err)
-	}
-
-	err = g.Compile()
+	_ = os.Setenv("EXAMExample_Version", "1")
+	_ = os.Setenv("EXAMExample_Colors_0", "red")
+	_ = os.Setenv("EXAMExample_Colors_1", "green")
+	_ = os.Setenv("EXAMExample_Colors_2", "blue")
+	g, err := goschtalt.New(
+		goschtalt.AutoCompile(),
+		env.EnvVarConfig("record", "EXAM", "_"),
+	)
 	if err != nil {
 		panic(err)
 	}
@@ -34,7 +32,7 @@ func Example() {
 		}
 	}
 
-	err = g.Unmarshal("", &cfg)
+	err = g.Unmarshal(goschtalt.Root, &cfg)
 	if err != nil {
 		panic(err)
 	}

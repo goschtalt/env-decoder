@@ -8,125 +8,29 @@ import (
 	"os"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/goschtalt/goschtalt"
-	"github.com/goschtalt/goschtalt/pkg/decoder"
-	"github.com/goschtalt/goschtalt/pkg/meta"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestExtensions(t *testing.T) {
-	assert := assert.New(t)
-
-	want := []string{Extension}
-	got := envDecoder{}.Extensions()
-
-	assert.Empty(cmp.Diff(want, got))
-}
-
-type kvp struct {
-	k string
-	v string
-}
-
-func TestDecode(t *testing.T) {
-	unknown := errors.New("unknown")
-	tests := []struct {
-		description string
-		vars        []kvp
-		file        string
-		expected    meta.Object
-		expectedErr error
-	}{
-		{
-			description: "A small test.",
-			vars: []kvp{
-				{k: "GOSCHTALT_foo_bar_0", v: "zero"},
-				{k: "GOSCHTALT_foo_bar_1", v: "one"},
-				{k: "GOSCHTALT_a", v: "one"},
-				{k: "GOSCHTALT_b", v: "two"},
-			},
-			file: `{ "prefix": "GOSCHTALT_", "delimiter": "_" }`,
-			expected: meta.Object{
-				Origins: []meta.Origin{{File: "filename.environ"}},
-				Map: map[string]meta.Object{
-					"foo": {
-						Origins: []meta.Origin{{File: "filename.environ"}},
-						Map: map[string]meta.Object{
-							"bar": {
-								Origins: []meta.Origin{{File: "filename.environ"}},
-								Array: []meta.Object{
-									{
-										Origins: []meta.Origin{{File: "filename.environ"}},
-										Value:   "zero",
-									}, {
-										Origins: []meta.Origin{{File: "filename.environ"}},
-										Value:   "one",
-									},
-								},
-							},
-						},
-					},
-					"a": {
-						Origins: []meta.Origin{{File: "filename.environ"}},
-						Value:   "one",
-					},
-					"b": {
-						Origins: []meta.Origin{{File: "filename.environ"}},
-						Value:   "two",
-					},
-				},
-			},
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.description, func(t *testing.T) {
-			assert := assert.New(t)
-
-			var d envDecoder
-			var got meta.Object
-			for _, val := range tc.vars {
-				os.Setenv(val.k, val.v)
-				defer os.Unsetenv(val.k)
-			}
-			ctx := decoder.Context{
-				Filename:  "filename.environ",
-				Delimiter: ".",
-			}
-			err := d.Decode(ctx, []byte(tc.file), &got)
-
-			if tc.expectedErr == nil {
-				assert.NoError(err)
-				assert.Empty(cmp.Diff(tc.expected, got, cmpopts.IgnoreUnexported(meta.Object{})))
-				return
-			}
-
-			if errors.Is(unknown, tc.expectedErr) {
-				assert.Error(err)
-				return
-			}
-
-			assert.ErrorIs(err, tc.expectedErr)
-		})
-	}
-}
-
-type input struct {
-	filename  string
-	prefix    string
-	delimiter string
-}
-
-type expect struct {
-	key      string
-	val      string
-	filename string
-}
-
 func TestEndToEnd(t *testing.T) {
+	type kvp struct {
+		k string
+		v string
+	}
+
+	type input struct {
+		filename  string
+		prefix    string
+		delimiter string
+	}
+
+	type expect struct {
+		key      string
+		val      string
+		filename string
+	}
+
 	vars := []kvp{
 		{k: "GOSCHTALT_foo_bar_0", v: "zero"},
 		{k: "GOSCHTALT_foo_bar_1", v: "one"},
@@ -197,8 +101,9 @@ func TestEndToEnd(t *testing.T) {
 				defer os.Unsetenv(val.k)
 			}
 			c, err := goschtalt.New(
-				append(EnvVarConfig(tc.input[0].filename, tc.input[0].prefix, tc.input[0].delimiter),
-					EnvVarConfig(tc.input[1].filename, tc.input[1].prefix, tc.input[1].delimiter)...)...)
+				EnvVarConfig(tc.input[0].filename, tc.input[0].prefix, tc.input[0].delimiter),
+				EnvVarConfig(tc.input[1].filename, tc.input[1].prefix, tc.input[1].delimiter),
+			)
 
 			require.NoError(err)
 			err = c.Compile()

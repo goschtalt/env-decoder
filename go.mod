@@ -3,9 +3,7 @@ module github.com/goschtalt/env-decoder
 go 1.18
 
 require (
-	github.com/google/go-cmp v0.5.9
 	github.com/goschtalt/goschtalt v0.7.0
-	github.com/psanford/memfs v0.0.0-20210214183328-a001468d78ef
 	github.com/stretchr/testify v1.8.1
 )
 

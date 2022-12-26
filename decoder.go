@@ -7,72 +7,38 @@
 package env
 
 import (
-	"encoding/json"
-	"fmt"
 	"os"
 	"strings"
 
 	"github.com/goschtalt/goschtalt"
-	"github.com/goschtalt/goschtalt/pkg/decoder"
 	"github.com/goschtalt/goschtalt/pkg/meta"
-	"github.com/psanford/memfs"
 )
 
-// The extension this decoder uses since the decode itself isn't public.
-const Extension = `environ`
-
-var _ decoder.Decoder = (*envDecoder)(nil)
-
-// envDecoder is a class for the property decoder.
-type envDecoder struct{}
-
-// Extensions returns the supported extensions.
-func (d envDecoder) Extensions() []string {
-	return []string{Extension}
-}
-
-type instructions struct {
-	Prefix    string
-	Delimiter string
-}
-
-// Decode decodes a byte arreay into the meta.Object tree.
-func (d envDecoder) Decode(ctx decoder.Context, b []byte, m *meta.Object) error {
-	var inst instructions
-	err := json.Unmarshal(b, &inst)
-	if err != nil {
-		return err
-	}
-
-	origin := meta.Origin{
-		File: ctx.Filename,
-	}
-
+// envToObjs convert from environment variables into the meta.Object tree.
+func envToObjs(prefix, delimiter, recordName string) (any, error) {
 	tree := meta.Object{
-		Origins: []meta.Origin{origin},
-		Map:     make(map[string]meta.Object),
+		Map: make(map[string]meta.Object),
 	}
 	list := os.Environ()
 	for _, item := range list {
 		kvp := strings.Split(item, "=")
-		if len(kvp) > 1 && strings.HasPrefix(kvp[0], inst.Prefix) {
+		if len(kvp) > 1 && strings.HasPrefix(kvp[0], prefix) {
 			key := kvp[0]
 			val := os.Getenv(key)
-			key = strings.TrimPrefix(key, inst.Prefix)
-			tree, err = tree.Add(inst.Delimiter, key, meta.StringToBestType(val), origin)
+			key = strings.TrimPrefix(key, prefix)
+			var err error
+			tree, err = tree.Add(delimiter, key, meta.StringToBestType(val))
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 	}
 
-	*m = tree.ConvertMapsToArrays()
-
-	return nil
+	return tree.ConvertMapsToArrays().ToRaw(), nil
 }
 
 // EnvVarConfig provides a way to collect configuration values from environment
-// variables passed into the program.  The filename is used to sort prior to
+// variables passed into the program.  The recordName is used to sort prior to
 // the merge step, allowing the order of operations to be specified.  The prefix
 // is the environment variable name prefix to look for when collecting them.
 // The delimiter is the string used to split the tree structure on.
@@ -81,26 +47,10 @@ func (d envDecoder) Decode(ctx decoder.Context, b []byte, m *meta.Object) error 
 // in the names is limited to: `[a-zA-Z_][a-zA-Z0-9_]*`
 //
 // If you need multiple prefix values, this option is safe to use multiple times.
-func EnvVarConfig(filename, prefix, delimiter string) []goschtalt.Option {
-	fn := fmt.Sprintf("%s.%s", filename, Extension)
-
-	inst := instructions{
-		Prefix:    prefix,
-		Delimiter: delimiter,
-	}
-	b, err := json.Marshal(inst)
-	if err != nil {
-		return []goschtalt.Option{goschtalt.WithError(err)}
-	}
-
-	envfs := memfs.New()
-	err = envfs.WriteFile(fn, b, 0755)
-	if err != nil {
-		return []goschtalt.Option{goschtalt.WithError(err)}
-	}
-
-	return []goschtalt.Option{
-		goschtalt.WithDecoder(envDecoder{}),
-		goschtalt.AddDir(envfs, "."),
-	}
+func EnvVarConfig(recordName, prefix, delimiter string) goschtalt.Option {
+	return goschtalt.AddValueFn(recordName, goschtalt.Root,
+		func(rn string, _ goschtalt.UnmarshalFunc) (any, error) {
+			return envToObjs(prefix, delimiter, rn)
+		},
+	)
 }
