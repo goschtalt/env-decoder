@@ -3,7 +3,7 @@ module github.com/goschtalt/env-decoder
 go 1.18
 
 require (
-	github.com/goschtalt/goschtalt v0.14.0
+	github.com/goschtalt/goschtalt v0.15.1
 	github.com/stretchr/testify v1.8.2
 )
 
