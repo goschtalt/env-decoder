@@ -48,9 +48,11 @@ func envToObjs(prefix, delimiter, recordName string) (any, error) {
 //
 // If you need multiple prefix values, this option is safe to use multiple times.
 func EnvVarConfig(recordName, prefix, delimiter string) goschtalt.Option {
-	return goschtalt.AddValueFn(recordName, goschtalt.Root,
-		func(rn string, _ goschtalt.UnmarshalFunc) (any, error) {
-			return envToObjs(prefix, delimiter, rn)
-		},
+	return goschtalt.AddValueGetter(recordName, goschtalt.Root,
+		goschtalt.ValueGetterFunc(
+			func(rn string, _ goschtalt.Unmarshaler) (any, error) {
+				return envToObjs(prefix, delimiter, rn)
+			},
+		),
 	)
 }
