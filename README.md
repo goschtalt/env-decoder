@@ -12,7 +12,7 @@ An optional environment variable based decoder for goschtalt.
 [![GitHub Release](https://img.shields.io/github/release/goschtalt/env-decoder.svg)](https://github.com/goschtalt/env-decoder/releases)
 [![GoDoc](https://pkg.go.dev/badge/github.com/goschtalt/env-decoder)](https://pkg.go.dev/github.com/goschtalt/env-decoder)
 
-This decoder provides both an example of using the `goschtalt.AddValueFn()` option
+This decoder provides both an example of using the `goschtalt.AddValueGetter()` option
 as well as a simple way to read in structured environment variables.
 
 While this approach might seem like a great path, a far better way to interact
